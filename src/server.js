@@ -118,6 +118,69 @@ app.delete('/api/farms/:id', async (req, res) => {
   }
 });
 
+app.put('/api/plots/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { cropTtype, areaInHecares, farmId } = req.body; // Nota: mantive o erro de digitação do seu schema (cropTtype)
+
+    const plotExistente = await prisma.plot.findUnique({
+      where: { id: Number(id) }
+    });
+
+    if (!plotExistente) {
+      return res.status(404).json({ erro: "Talhão não encontrado para atualização." });
+    }
+
+    if (areaInHecares !== undefined && Number(areaInHecares) <= 0) {
+      return res.status(400).json({ erro: "A área em hectares deve ser maior que zero." });
+    }
+
+    if (farmId !== undefined) {
+      const farmExiste = await prisma.farm.findUnique({
+        where: { id: Number(farmId) }
+      });
+      if (!farmExiste) {
+        return res.status(400).json({ erro: "A fazenda informada (farmId) não existe." });
+      }
+    }
+
+    const plotAtualizado = await prisma.plot.update({
+      where: { id: Number(id) },
+      data: {
+        cropTtype,
+        areaInHecares: areaInHecares !== undefined ? Number(areaInHecares) : undefined,
+        farmId: farmId !== undefined ? Number(farmId) : undefined
+      }
+    });
+
+    return res.json(plotAtualizado);
+  } catch (error) {
+    return res.status(500).json({ erro: "Erro ao atualizar o talhão." });
+  }
+});
+
+app.delete('/api/plots/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const plotExistente = await prisma.plot.findUnique({
+      where: { id: Number(id) }
+    });
+
+    if (!plotExistente) {
+      return res.status(404).json({ erro: "Talhão não encontrado para exclusão." });
+    }
+
+    await prisma.plot.delete({
+      where: { id: Number(id) }
+    });
+
+    return res.json({ mensagem: "Talhão excluído com sucesso." });
+  } catch (error) {
+    return res.status(500).json({ erro: "Erro ao excluir o talhão." });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🚜🟢Agrotech rodante com sucesso`);
 });
